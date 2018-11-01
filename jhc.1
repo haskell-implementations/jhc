@@ -1,0 +1,789 @@
+.\"t
+.TH Jhc "" "" "User's Manual"
+.SH NAME
+.PP
+\f[CR]
+      jhc\ -\ jhc\ haskell\ compiler
+\f[]
+.SH SYNOPSIS
+.PP
+\f[CR]
+      jhc\ [OPTION\ ..]\ Main.hs\ -o\ main
+\f[]
+.SH Using
+.SS Building Projects
+.PP
+Jhc does its own dependency chasing to track down source files, you
+need only provide it with the file containing your `main' function
+on the command line.
+For instance, if you had a program `HelloWorld.hs', the following
+would compile it to an executable named `hello'.
+.PP
+\f[CR]
+      ;\ jhc\ HelloWorld.hs\ -o\ hello
+\f[]
+.PP
+Jhc searches for modules in its search path, which defaults to the
+current directory.
+Modules are searched for based on their names.
+For instance, the module Data.Foo will be searched for in
+`Data/Foo.hs' and `Data.Foo.hs'.
+The search path may be modifed with the '-i' command line option,
+or by setting the `JHC_PATH' environment variable.
+.SS Using Libraries
+.PP
+jhc libraries are distributed as files with an `hl' suffix, such as
+`base\[en]1.0.hl'.
+In order to use a haskell library you simply need to place the file
+in a directory that jhc will search for it.
+For instance, $HOME/lib/jhc.
+You may set the environment variable JHC_LIBRARY_PATH to specify
+alternate locations to search for libraries or specify directory to
+search with the -L command line option.
+-L- will clear the search path.
+.PP
+You can then use libraries with the '-p' command line option, for
+instance if you had a library `mylibrary\[en]1.0.hl' in your search
+path, the following would use it.
+.PP
+\f[CR]
+      ;\ jhc\ -p\ mylibrary\ MyProgram.hs\ -o\ myprogram
+\f[]
+.PP
+You can list all available libraries by passing the
+\[em]list-libraries option to jhc.
+If you include '-v' for verbose output, you will get detailed
+information about the libraries in a YAML format suitable for
+processing by external tools.
+.SS Environment Variables
+.PP
+Jhc's behavior is modified by several enviornment variables.
+.PP
+JHC_OPTS : this is read and appended to the command line of jhc
+invocations.
+.PP
+JHC_PATH : This specifies the path to search for modules.
+.PP
+JHC_LIBRARY_PATH : This specifies the path to search for libraries.
+.PP
+JHC_CACHE : This specified the directory jhc will use to cache
+values.
+having a valid cache is essential for jhc performance.
+It defaults to ~/.jhc/cache.
+.SS Building Haskell Libraries
+.PP
+Libraries are built by passing jhc a file describing the library
+via the \[em]build-hl option.
+The library file format is a stadard YAML file.
+.PP
+\f[CR]
+      ;\ jhc\ --build-hl\ mylibrary.yaml
+\f[]
+.SS Library File Format
+.PP
+The library file is a YAML document, jhc will recognize several
+fields and ignore unknown ones.
+.PP
+Name : The name of your library
+.PP
+Version : The version of your library, The version number is used
+to differentiate different versions of the library passed to the
+'-p' command line option but is not otherwise special to jhc.
+.PP
+Exposed-Modules : A list of modules to be included in the library
+and exposed to users of the library as its public interface.
+This may include modules that are part of another library, they
+will be re-exported by the current library.
+.PP
+Hidden-Modules : A list of modules that the library may use
+internally but that should not be exposed to the user.
+Jhc may optimize based on this information.
+If this list is not exhaustive jhc will still build your library,
+but it will print out a warning.
+.PP
+Extensions : A list of extensions which should be enabled during
+compilation of this module.
+When possible, jhc will match ghc extensions to their closest jhc
+counterparts.
+.PP
+Options : Extra command line options to jhc for this library build.
+.PP
+Build-Depends : libraries to include, in the same format as passed
+to the '-p' command line option
+.PP
+Hs-Source-Dirs : Directory to search for Haskell source files in,
+this differs from the '-i' command line option in that the
+directory in this field is relative to the directory the library
+description \&.yaml file is located while the '-i' option is always
+relative to the current working directory.
+.PP
+Include-Dirs : directories to be included in the preprocessor
+search path as if via '-I'.
+The directories are interpreted relative to the directory that
+contains the yaml file.
+.PP
+C-Sources : C files that should be linked into programs that
+utilize this library.
+.PP
+Include-Sources : files that should be made available for inclusion
+when compiling the generated C code but don't need to be linked
+into the executable.
+.PP
+example library files can be seen in lib/jhc/jhc.yaml and
+lib/base/base.yaml
+.SS Dependency Information
+.PP
+Jhc can output dependency information describing how source files
+and libraries depend on each other while compiling code.
+The dependency information is generated when the \[em]deps
+name.yaml option is passed to jhc.
+It is presented in the standard YAML format and its fields are as
+described below.
+.IP \[bu] 2
+LibraryDeps: the libraries that are dependend on.
+It is a hash of library ids to the specific filename of the library
+used.
+.IP \[bu] 2
+LibraryDesc: if building a library, this field contains the name of
+the library description file used.
+.IP \[bu] 2
+ModuleDeps: a hash of module names to the list of modules that are
+directly dependend on by said module.
+.IP \[bu] 2
+ModuleSouce: a hash of module name to the haskell source file used.
+.PP
+An example tool to processs the deps.yaml file and spit out
+appropriate Makefile rules is included as `utils/deps_to_make.prl'.
+.SH Options
+.PP
+\f[CR]
+      Usage:\ jhc\ [OPTION...]\ Main.hs
+      \ \ -V\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ --version\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ print\ version\ info\ and\ exit
+      \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ --version-context\ \ \ \ \ \ \ \ \ print\ version\ context\ info\ and\ exit
+      \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ --help\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ print\ help\ information\ and\ exit
+      \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ --info\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ show\ compiler\ configuration\ information\ and\ exit
+      \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ --purge-cache\ \ \ \ \ \ \ \ \ \ \ \ \ clean\ out\ jhc\ compilation\ cache
+      \ \ -v\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ --verbose\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ chatty\ output\ on\ stderr
+      \ \ -z\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ Increase\ verbosity\ of\ statistics
+      \ \ -d\ [no-]flag\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ dump\ specified\ data\ during\ compilation
+      \ \ -f\ [no-]flag\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ set\ or\ clear\ compilation\ options
+      \ \ -X\ ExtensionName\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ enable\ the\ given\ language\ extension
+      \ \ -o\ FILE\ \ \ \ \ \ \ \ \ \ \ --output=FILE\ \ \ \ \ \ \ \ \ \ \ \ \ output\ to\ FILE
+      \ \ -i\ DIR\ \ \ \ \ \ \ \ \ \ \ \ --include=DIR\ \ \ \ \ \ \ \ \ \ \ \ \ where\ to\ look\ for\ source\ files
+      \ \ -I\ DIR\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ add\ to\ preprocessor\ include\ path
+      \ \ -D\ NAME=VALUE\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ add\ new\ definitions\ to\ set\ in\ preprocessor
+      \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ --optc=option\ \ \ \ \ \ \ \ \ \ \ \ \ extra\ options\ to\ pass\ to\ c\ compiler
+      \ \ -c\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ just\ compile\ the\ modules,\ caching\ the\ results.
+      \ \ -C\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ compile\ to\ C\ code
+      \ \ -E\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ preprocess\ the\ input\ and\ print\ result\ to\ stdout
+      \ \ -k\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ --keepgoing\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ keep\ going\ on\ errors
+      \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ --cross\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ enable\ cross-compilation,\ choose\ target\ with\ the\ -m\ flag
+      \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ --stop=parse/typecheck/c\ \ stop\ after\ the\ given\ pass,\ parse/typecheck/c
+      \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ --width=COLUMNS\ \ \ \ \ \ \ \ \ \ \ width\ of\ screen\ for\ debugging\ output
+      \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ --main=Main.main\ \ \ \ \ \ \ \ \ \ main\ entry\ point
+      \ \ -m\ arch\ \ \ \ \ \ \ \ \ \ \ --arch=arch\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ target\ architecture\ options
+      \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ --entry=<expr>\ \ \ \ \ \ \ \ \ \ \ \ main\ entry\ point,\ showable\ expression
+      \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ --show-ho=file.ho\ \ \ \ \ \ \ \ \ Show\ ho\ file
+      \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ --noauto\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ Don\[aq]t\ automatically\ load\ base\ and\ haskell98\ packages
+      \ \ -p\ package\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ Load\ given\ haskell\ library\ package
+      \ \ -L\ path\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ Look\ for\ haskell\ libraries\ in\ the\ given\ directory
+      \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ --build-hl=desc.yaml\ \ \ \ \ \ Build\ hakell\ library\ from\ given\ library\ description\ file
+      \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ --annotate-source=<dir>\ \ \ Write\ preprocessed\ and\ annotated\ source\ code\ to\ the\ directory\ specified
+      \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ --deps=<file.yaml>\ \ \ \ \ \ \ \ Write\ dependency\ information\ to\ file\ specified
+      \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ --interactive\ \ \ \ \ \ \ \ \ \ \ \ \ run\ interactivly\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ (\ for\ debugging\ only)
+      \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ --ignore-cache\ \ \ \ \ \ \ \ \ \ \ \ Ignore\ existing\ compilation\ cache\ entries.
+      \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ --readonly-cache\ \ \ \ \ \ \ \ \ \ Do\ not\ write\ new\ information\ to\ the\ compilation\ cache.
+      \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ --no-cache\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ Do\ not\ use\ or\ update\ the\ cache.
+      \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ --cache-dir=JHC_CACHE\ \ \ \ \ Use\ a\ global\ cache\ located\ in\ the\ directory\ passed\ as\ an\ argument.
+      \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ --stale=Module\ \ \ \ \ \ \ \ \ \ \ \ Treat\ these\ modules\ as\ stale,\ even\ if\ they\ exist\ in\ the\ cache
+      \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ --list-libraries\ \ \ \ \ \ \ \ \ \ List\ of\ installed\ libraries
+      \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ --tdir=dir/\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ specify\ the\ directory\ where\ all\ intermediate\ files/dumps\ will\ be\ placed.
+      
+      valid\ -d\ arguments:\ \[aq]help\[aq]\ for\ more\ info
+      \ \ \ \ all-types,\ aspats,\ atom,\ bindgroups,\ boxy-steps,\ c,\ class,\ class-summary,\ core,\ core-afterlift
+      \ \ \ \ core-beforelift,\ core-initial,\ core-mangled,\ core-mini,\ core-pass,\ core-steps,\ datatable
+      \ \ \ \ datatable-builtin,\ dcons,\ decls,\ defs,\ derived,\ e-alias,\ e-info,\ e-size,\ e-verbose,\ exports,\ grin
+      \ \ \ \ grin-datalog,\ grin-final,\ grin-graph,\ grin-initial,\ grin-normalized,\ grin-posteval,\ grin-preeval
+      \ \ \ \ imports,\ ini,\ instance,\ kind,\ kind-steps,\ optimization-stats,\ parsed,\ preprocessed,\ program
+      \ \ \ \ progress,\ renamed,\ rules,\ rules-spec,\ scc-modules,\ sigenv,\ srcsigs,\ stats,\ steps,\ tags,\ the
+      \ \ \ \ types,\ verbose,\ veryverbose
+      
+      valid\ -f\ arguments:\ \[aq]help\[aq]\ for\ more\ info
+      \ \ \ \ bang-patterns,\ boehm,\ controlled,\ cpp,\ debug,\ default,\ defaulting,\ exists,\ ffi,\ forall,\ full-int
+      \ \ \ \ glasgow-exts,\ global-optimize,\ inline-pragmas,\ jgc,\ lint,\ m4,\ monomorphism-restriction,\ negate
+      \ \ \ \ prelude,\ profile,\ raw,\ rules,\ standalone,\ type-analysis,\ type-families,\ unboxed-tuples
+      \ \ \ \ unboxed-values,\ user-kinds,\ wrapper
+\f[]
+.SS Code Options
+.PP
+Various options affecting how jhc interprets and compiles code can
+be controlled with the '-f' flag, the following options are
+availible, you can negate any particular one by prepending `no-' to
+it.
+.PP
+.TS
+tab(@);
+l l.
+T{
+Code options
+T}@T{
+T}
+_
+T{
+\f[I]bang-patterns\f[]
+T}@T{
+- bang patterns
+T}
+T{
+\f[I]cpp\f[]
+T}@T{
+pass haskell source through c preprocessor
+T}
+T{
+\f[I]exists\f[]
+T}@T{
+- exists keyword for existential types recognized
+T}
+T{
+\f[I]ffi\f[]
+T}@T{
+support foreign function declarations
+T}
+T{
+\f[I]forall\f[]
+T}@T{
+- forall keyword for rank-n types and explicit quantification
+T}
+T{
+\f[I]m4\f[]
+T}@T{
+pass haskell source through m4 preprocessor
+T}
+T{
+\f[I]prelude\f[]
+T}@T{
+implicitly import Prelude
+T}
+T{
+\f[I]type-families\f[]
+T}@T{
+type/data family support
+T}
+T{
+\f[I]unboxed-tuples\f[]
+T}@T{
+allow unboxed tuple syntax to be recognized
+T}
+T{
+\f[I]unboxed-values\f[]
+T}@T{
+allow unboxed value syntax
+T}
+T{
+\f[I]user-kinds\f[]
+T}@T{
+user defined kinds
+T}
+.TE
+.PP
+.TS
+tab(@);
+l l.
+T{
+Typechecking
+T}@T{
+T}
+_
+T{
+\f[I]defaulting\f[]
+T}@T{
+perform defaulting of ambiguous types
+T}
+T{
+\f[I]monomorphism-restriction\f[]
+T}@T{
+enforce monomorphism restriction
+T}
+.TE
+.PP
+.TS
+tab(@);
+l l.
+T{
+Debugging
+T}@T{
+T}
+_
+T{
+\f[I]lint\f[]
+T}@T{
+perform lots of extra type checks
+T}
+.TE
+.PP
+.TS
+tab(@);
+l l.
+T{
+Optimization Options
+T}@T{
+T}
+_
+T{
+\f[I]global-optimize\f[]
+T}@T{
+perform whole program E optimization
+T}
+T{
+\f[I]inline-pragmas\f[]
+T}@T{
+use inline pragmas
+T}
+T{
+\f[I]rules\f[]
+T}@T{
+use rules
+T}
+T{
+\f[I]type-analysis\f[]
+T}@T{
+perform a basic points-to analysis on types right after method
+generation
+T}
+.TE
+.PP
+.TS
+tab(@);
+l l.
+T{
+Code Generation
+T}@T{
+T}
+_
+T{
+\f[I]boehm\f[]
+T}@T{
+use Boehm garbage collector
+T}
+T{
+\f[I]debug\f[]
+T}@T{
+enable debugging code in generated executable
+T}
+T{
+\f[I]full-int\f[]
+T}@T{
+extend Int and Word to 32 bits on a 32 bit machine (rather than 30)
+T}
+T{
+\f[I]jgc\f[]
+T}@T{
+use the jgc garbage collector
+T}
+T{
+\f[I]profile\f[]
+T}@T{
+enable profiling code in generated executable
+T}
+T{
+\f[I]raw\f[]
+T}@T{
+just evaluate main to WHNF and nothing else.
+T}
+T{
+\f[I]standalone\f[]
+T}@T{
+compile to a standalone executable
+T}
+T{
+\f[I]wrapper\f[]
+T}@T{
+wrap main in exception handler
+T}
+.TE
+.PP
+.TS
+tab(@);
+l l.
+T{
+Default settings
+T}@T{
+T}
+_
+T{
+\f[I]default\f[]
+T}@T{
+inline-pragmas rules wrapper defaulting type-analysis
+monomorphism-restriction global-optimize full-int prelude
+T}
+T{
+\f[I]glasgow-exts\f[]
+T}@T{
+forall ffi unboxed-tuples
+T}
+.TE
+.SS Dumping Debugging Information
+.PP
+You can have jhc print out a variety of things while running as
+Controlled by the '-d' flag.
+The following is a list of possible parameters you can pass to
+'-d'.
+.PP
+.TS
+tab(@);
+l l.
+T{
+Front End
+T}@T{
+T}
+_
+T{
+\f[I]defs\f[]
+T}@T{
+Show all defined names in a module
+T}
+T{
+\f[I]derived\f[]
+T}@T{
+show generated derived instances
+T}
+T{
+\f[I]exports\f[]
+T}@T{
+show which names are exported from each module
+T}
+T{
+\f[I]imports\f[]
+T}@T{
+show in scope names for each module
+T}
+T{
+\f[I]ini\f[]
+T}@T{
+all ini configuration options
+T}
+T{
+\f[I]parsed\f[]
+T}@T{
+parsed code
+T}
+T{
+\f[I]preprocessed\f[]
+T}@T{
+code after preprocessing/deliting
+T}
+T{
+\f[I]renamed\f[]
+T}@T{
+code after uniqueness renaming
+T}
+T{
+\f[I]scc-modules\f[]
+T}@T{
+show strongly connected modules in dependency order
+T}
+.TE
+.PP
+.TS
+tab(@);
+l l.
+T{
+Type Checker
+T}@T{
+T}
+_
+T{
+\f[I]all-types\f[]
+T}@T{
+show unified type table, after everything has been typechecked
+T}
+T{
+\f[I]aspats\f[]
+T}@T{
+show as patterns
+T}
+T{
+\f[I]bindgroups\f[]
+T}@T{
+show bindgroups
+T}
+T{
+\f[I]boxy-steps\f[]
+T}@T{
+show step by step what the type inferencer is doing
+T}
+T{
+\f[I]class\f[]
+T}@T{
+detailed information on each class
+T}
+T{
+\f[I]class-summary\f[]
+T}@T{
+summary of all classes
+T}
+T{
+\f[I]dcons\f[]
+T}@T{
+data constructors
+T}
+T{
+\f[I]decls\f[]
+T}@T{
+processed declarations
+T}
+T{
+\f[I]instance\f[]
+T}@T{
+show instances
+T}
+T{
+\f[I]kind\f[]
+T}@T{
+show results of kind inference for each module
+T}
+T{
+\f[I]kind-steps\f[]
+T}@T{
+show steps of kind inference
+T}
+T{
+\f[I]program\f[]
+T}@T{
+impl expls, the whole shebang.
+T}
+T{
+\f[I]sigenv\f[]
+T}@T{
+initial signature environment
+T}
+T{
+\f[I]srcsigs\f[]
+T}@T{
+processed signatures from source code
+T}
+T{
+\f[I]types\f[]
+T}@T{
+display unified type table containing all defined names
+T}
+.TE
+.PP
+.TS
+tab(@);
+l l.
+T{
+Intermediate code
+T}@T{
+T}
+_
+T{
+\f[I]core\f[]
+T}@T{
+show intermediate core code
+T}
+T{
+\f[I]core-afterlift\f[]
+T}@T{
+show final core before writing ho file
+T}
+T{
+\f[I]core-beforelift\f[]
+T}@T{
+show core before lambda lifting
+T}
+T{
+\f[I]core-initial\f[]
+T}@T{
+show core right after E.FromHs conversion
+T}
+T{
+\f[I]core-mangled\f[]
+T}@T{
+de-typed core right before it is converted to grin
+T}
+T{
+\f[I]core-mini\f[]
+T}@T{
+show details even when optimizing individual functions
+T}
+T{
+\f[I]core-pass\f[]
+T}@T{
+show each iteration of code while transforming
+T}
+T{
+\f[I]core-steps\f[]
+T}@T{
+show what happens in each pass
+T}
+T{
+\f[I]datatable\f[]
+T}@T{
+show data table of constructors
+T}
+T{
+\f[I]datatable-builtin\f[]
+T}@T{
+show data table entries for some built in types
+T}
+T{
+\f[I]e-alias\f[]
+T}@T{
+show expanded aliases
+T}
+T{
+\f[I]e-info\f[]
+T}@T{
+show info tags on all bound variables
+T}
+T{
+\f[I]e-size\f[]
+T}@T{
+print the size of E after each pass
+T}
+T{
+\f[I]e-verbose\f[]
+T}@T{
+print very verbose version of E code always
+T}
+T{
+\f[I]optimization-stats\f[]
+T}@T{
+show combined stats of optimization passes
+T}
+T{
+\f[I]rules\f[]
+T}@T{
+show all user rules and catalysts
+T}
+T{
+\f[I]rules-spec\f[]
+T}@T{
+show specialization rules
+T}
+.TE
+.PP
+.TS
+tab(@);
+l l.
+T{
+Grin code
+T}@T{
+T}
+_
+T{
+\f[I]grin\f[]
+T}@T{
+dump all grin to the screen
+T}
+T{
+\f[I]grin-datalog\f[]
+T}@T{
+print out grin information in a format suitable for loading into a
+database
+T}
+T{
+\f[I]grin-final\f[]
+T}@T{
+final grin before conversion to C
+T}
+T{
+\f[I]grin-graph\f[]
+T}@T{
+print dot file of final grin code to outputname_grin.dot
+T}
+T{
+\f[I]grin-initial\f[]
+T}@T{
+grin right after conversion from core
+T}
+T{
+\f[I]grin-normalized\f[]
+T}@T{
+grin right after first normalization
+T}
+T{
+\f[I]grin-posteval\f[]
+T}@T{
+show grin code just before eval/apply inlining
+T}
+T{
+\f[I]grin-preeval\f[]
+T}@T{
+show grin code just before eval/apply inlining
+T}
+T{
+\f[I]steps\f[]
+T}@T{
+show interpreter go
+T}
+T{
+\f[I]tags\f[]
+T}@T{
+list of all tags and their types
+T}
+.TE
+.PP
+.TS
+tab(@);
+l l.
+T{
+Backend code
+T}@T{
+T}
+_
+T{
+\f[I]c\f[]
+T}@T{
+don't delete C source file after compilation
+T}
+.TE
+.PP
+.TS
+tab(@);
+l l.
+T{
+Internal
+T}@T{
+T}
+_
+T{
+\f[I]atom\f[]
+T}@T{
+dump atom table on exit
+T}
+.TE
+.PP
+.TS
+tab(@);
+l l.
+T{
+General
+T}@T{
+T}
+_
+T{
+\f[I]progress\f[]
+T}@T{
+show basic progress indicators
+T}
+T{
+\f[I]stats\f[]
+T}@T{
+show extra information about stuff
+T}
+T{
+\f[I]verbose\f[]
+T}@T{
+progress
+T}
+T{
+\f[I]veryverbose\f[]
+T}@T{
+progress stats
+T}
+.TE
+.SH AUTHORS
+John Meacham.
+

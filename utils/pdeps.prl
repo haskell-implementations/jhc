@@ -1,0 +1,23 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+use Graph;
+use Data::Dumper;
+
+my $g = Graph->new();
+
+while (<>) {
+    s/#.*//;
+    next unless /\S/;
+    /(\S+) : (\S+)/;
+    $g->add_edge($1,$2);
+}
+
+#print $g;
+
+#my $tcg = $g->TransitiveClosure_Floyd_Warshall;
+
+my @cc = $g->weakly_connected_components;
+
+print Dumper(\@cc);

@@ -1,0 +1,46 @@
+#!/usr/bin/perl
+
+# This program creates a makefile fragment that contains all
+# of the dependencies for the jhc libraries that will be built.
+
+use strict;
+use warnings;
+
+my @libs=qw/jhc-prim jhc haskell-extras haskell2010 flat-foreign haskell98 applicative/;
+my @elibs=qw/containers Diff html HUnit parsec pretty QuickCheck
+   safe smallcheck xhtml transformers filepath deepseq bytestring/;
+
+sub mysystem {
+    print join " ",@_;
+    print "\n";
+    system(@_) == 0;
+}
+
+sub findlib {
+        foreach my $e (qw/.yaml .cabal .yaml.m4/) {
+#            print "Checking $_[0]$e\n";
+            return "lib/$_[0]/$_[0]$e" if -f "lib/$_[0]/$_[0]$e";
+            return "lib/ext/$_[0]$e" if -f "lib/ext/$_[0]$e";
+    }
+}
+
+mkdir "tmp";
+unlink "tmp/tmpdeps.make";
+
+my @ls;
+for (@libs) {
+    my $ld =  findlib($_),"\n";
+    mysystem("./jhc -L- -L. --build-hl $ld --deps tmp/$_-deps.yaml --stop deps");
+    push @ls,$_;
+}
+mysystem("perl utils/deps_to_make.prl " . join(' ', map { "tmp/$_-deps.yaml" } @ls) . "  >> tmp/tmpdeps.make");
+
+@ls = ();
+for (@elibs) {
+    my $ld =  findlib($_),"\n";
+    mysystem("perl utils/build_extlibs.prl -d $ld");
+    push @ls,$_;
+}
+mysystem("perl utils/deps_to_make.prl -e " . join(' ', map { "tmp/$_-deps.yaml" } @ls) . "  >> tmp/tmpdeps.make");
+
+rename("tmp/tmpdeps.make", "library_deps.make");

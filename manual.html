@@ -1,0 +1,1110 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <meta http-equiv="Content-Style-Type" content="text/css" />
+  <meta name="generator" content="pandoc" />
+  <meta name="author" content="John Meacham" />
+  <title>Jhc User's Manual</title>
+  <style type="text/css">code{white-space: pre;}</style>
+  <link rel="stylesheet" href="manual.css" type="text/css" />
+</head>
+<body>
+<div id="header">
+<h1 class="title">Jhc User's Manual</h1>
+<h2 class="author">John Meacham</h2>
+</div>
+<div id="TOC">
+<ul>
+<li><a href="#using">Using</a><ul>
+<li><a href="#building-projects">Building Projects</a></li>
+<li><a href="#using-libraries">Using Libraries</a></li>
+<li><a href="#environment-variables">Environment Variables</a></li>
+<li><a href="#building-haskell-libraries">Building Haskell Libraries</a><ul>
+<li><a href="#library-file-format">Library File Format</a></li>
+</ul></li>
+<li><a href="#dependency-information">Dependency Information</a></li>
+</ul></li>
+<li><a href="#options">Options</a><ul>
+<li><a href="#code-options">Code Options</a></li>
+<li><a href="#dumping-debugging-information">Dumping Debugging Information</a></li>
+</ul></li>
+<li><a href="#pragmas">Pragmas</a><ul>
+<li><a href="#function-properties">Function Properties</a></li>
+<li><a href="#class-pragmas">Class Pragmas</a></li>
+<li><a href="#rulesspecializations">Rules/Specializations</a></li>
+<li><a href="#type-pragmas">Type Pragmas</a></li>
+<li><a href="#header-pragmas">Header Pragmas</a></li>
+</ul></li>
+<li><a href="#extensions">Extensions</a><ul>
+<li><a href="#module-search-path">Module Search Path</a></li>
+<li><a href="#extensions-to-the-ffi">extensions to the FFI</a><ul>
+<li><a href="#foreign-imports-with-multiple-return-values.">foreign imports with multiple return values.</a></li>
+<li><a href="#capi-calling-convention">'capi' calling convention</a></li>
+<li><a href="#package-relative-dependencies">package relative dependencies</a></li>
+</ul></li>
+<li><a href="#explicit-namespaces-in-importexport-lists">Explicit namespaces in import/export lists</a></li>
+<li><a href="#user-defined-kinds">user defined kinds</a></li>
+<li><a href="#standalone-deriving">Standalone deriving</a></li>
+<li><a href="#rank-n-polymorphism">Rank-N Polymorphism</a></li>
+<li><a href="#existential-types">Existential types</a></li>
+<li><a href="#unboxed-values">Unboxed Values</a><ul>
+<li><a href="#unboxed-tuples">Unboxed Tuples</a></li>
+<li><a href="#unboxed-strings">Unboxed Strings</a></li>
+<li><a href="#unboxed-characters">Unboxed Characters</a></li>
+<li><a href="#unboxed-numbers">Unboxed Numbers</a></li>
+<li><a href="#operations-on-unboxed-values">Operations on unboxed values</a></li>
+</ul></li>
+<li><a href="#foreign-primitives">Foreign Primitives</a></li>
+</ul></li>
+<li><a href="#differences">Differences</a><ul>
+<li><a href="#differences-from-haskell-98">Differences from Haskell 98</a><ul>
+<li><a href="#language-differences">Language Differences</a></li>
+<li><a href="#library-changes">Library Changes</a></li>
+<li><a href="#library-additions">Library Additions</a></li>
+</ul></li>
+<li><a href="#notable-differences-from-ghc">Notable Differences from GHC</a></li>
+<li><a href="#differences-that-are-considered-misfeatures">Differences That are Considered Misfeatures</a></li>
+</ul></li>
+<li><a href="#crosscompilation">CrossCompilation</a><ul>
+<li><a href="#basics">Basics</a></li>
+<li><a href="#targets.ini">targets.ini</a></li>
+<li><a href="#options-available">Options available</a></li>
+<li><a href="#special-defines-to-set-cflags">Special defines to set cflags</a></li>
+</ul></li>
+<li><a href="#internals">Internals</a><ul>
+<li><a href="#the-run-time-system">The Run Time System</a></li>
+<li><a href="#jhc-core-type-system">Jhc Core Type System</a><ul>
+<li><a href="#on-boxed-kinds">On boxed kinds</a></li>
+<li><a href="#on-sort-box-the-unboxed-tuple-and-friends">On sort box, the unboxed tuple, and friends</a></li>
+</ul></li>
+</ul></li>
+</ul>
+</div>
+<h1 id="using"><a href="#using">Using</a></h1>
+<h2 id="building-projects"><a href="#building-projects">Building Projects</a></h2>
+<p>Jhc does its own dependency chasing to track down source files, you need only provide it with the file containing your 'main' function on the command line. For instance, if you had a program 'HelloWorld.hs', the following would compile it to an executable named 'hello'.</p>
+<pre><code>; jhc HelloWorld.hs -o hello</code></pre>
+<p>Jhc searches for modules in its search path, which defaults to the current directory. Modules are searched for based on their names. For instance, the module Data.Foo will be searched for in 'Data/Foo.hs' and 'Data.Foo.hs'. The search path may be modifed with the '-i' command line option, or by setting the 'JHC_PATH' environment variable.</p>
+<h2 id="using-libraries"><a href="#using-libraries">Using Libraries</a></h2>
+<p>jhc libraries are distributed as files with an 'hl' suffix, such as 'base-1.0.hl'. In order to use a haskell library you simply need to place the file in a directory that jhc will search for it. For instance, $HOME/lib/jhc. You may set the environment variable JHC_LIBRARY_PATH to specify alternate locations to search for libraries or specify directory to search with the -L command line option. -L- will clear the search path.</p>
+<p>You can then use libraries with the '-p' command line option, for instance if you had a library 'mylibrary-1.0.hl' in your search path, the following would use it.</p>
+<pre><code>; jhc -p mylibrary MyProgram.hs -o myprogram</code></pre>
+<p>You can list all available libraries by passing the --list-libraries option to jhc. If you include '-v' for verbose output, you will get detailed information about the libraries in a YAML format suitable for processing by external tools.</p>
+<h2 id="environment-variables"><a href="#environment-variables">Environment Variables</a></h2>
+<p>Jhc's behavior is modified by several enviornment variables.</p>
+<p>JHC_OPTS : this is read and appended to the command line of jhc invocations.</p>
+<p>JHC_PATH : This specifies the path to search for modules.</p>
+<p>JHC_LIBRARY_PATH : This specifies the path to search for libraries.</p>
+<p>JHC_CACHE : This specified the directory jhc will use to cache values. having a valid cache is essential for jhc performance. It defaults to ~/.jhc/cache.</p>
+<h2 id="building-haskell-libraries"><a href="#building-haskell-libraries">Building Haskell Libraries</a></h2>
+<p>Libraries are built by passing jhc a file describing the library via the --build-hl option. The library file format is a stadard YAML file.</p>
+<pre><code>; jhc --build-hl mylibrary.yaml</code></pre>
+<h3 id="library-file-format"><a href="#library-file-format">Library File Format</a></h3>
+<p>The library file is a YAML document, jhc will recognize several fields and ignore unknown ones.</p>
+<p>Name : The name of your library</p>
+<p>Version : The version of your library, The version number is used to differentiate different versions of the library passed to the '-p' command line option but is not otherwise special to jhc.</p>
+<p>Exposed-Modules : A list of modules to be included in the library and exposed to users of the library as its public interface. This may include modules that are part of another library, they will be re-exported by the current library.</p>
+<p>Hidden-Modules : A list of modules that the library may use internally but that should not be exposed to the user. Jhc may optimize based on this information. If this list is not exhaustive jhc will still build your library, but it will print out a warning.</p>
+<p>Extensions : A list of extensions which should be enabled during compilation of this module. When possible, jhc will match ghc extensions to their closest jhc counterparts.</p>
+<p>Options : Extra command line options to jhc for this library build.</p>
+<p>Build-Depends : libraries to include, in the same format as passed to the '-p' command line option</p>
+<p>Hs-Source-Dirs : Directory to search for Haskell source files in, this differs from the '-i' command line option in that the directory in this field is relative to the directory the library description .yaml file is located while the '-i' option is always relative to the current working directory.</p>
+<p>Include-Dirs : directories to be included in the preprocessor search path as if via '-I'. The directories are interpreted relative to the directory that contains the yaml file.</p>
+<p>C-Sources : C files that should be linked into programs that utilize this library.</p>
+<p>Include-Sources : files that should be made available for inclusion when compiling the generated C code but don't need to be linked into the executable.</p>
+<p>example library files can be seen in lib/jhc/jhc.yaml and lib/base/base.yaml</p>
+<h2 id="dependency-information"><a href="#dependency-information">Dependency Information</a></h2>
+<p>Jhc can output dependency information describing how source files and libraries depend on each other while compiling code. The dependency information is generated when the --deps name.yaml option is passed to jhc. It is presented in the standard YAML format and its fields are as described below.</p>
+<ul>
+<li>LibraryDeps: the libraries that are dependend on. It is a hash of library ids to the specific filename of the library used.</li>
+<li>LibraryDesc: if building a library, this field contains the name of the library description file used.</li>
+<li>ModuleDeps: a hash of module names to the list of modules that are directly dependend on by said module.</li>
+<li>ModuleSouce: a hash of module name to the haskell source file used.</li>
+</ul>
+<p>An example tool to processs the deps.yaml file and spit out appropriate Makefile rules is included as 'utils/deps_to_make.prl'.</p>
+<h1 id="options"><a href="#options">Options</a></h1>
+<pre><code>Usage: jhc [OPTION...] Main.hs
+  -V                --version                 print version info and exit
+                    --version-context         print version context info and exit
+                    --help                    print help information and exit
+                    --info                    show compiler configuration information and exit
+                    --purge-cache             clean out jhc compilation cache
+  -v                --verbose                 chatty output on stderr
+  -z                                          Increase verbosity of statistics
+  -d [no-]flag                                dump specified data during compilation
+  -f [no-]flag                                set or clear compilation options
+  -X ExtensionName                            enable the given language extension
+  -o FILE           --output=FILE             output to FILE
+  -i DIR            --include=DIR             where to look for source files
+  -I DIR                                      add to preprocessor include path
+  -D NAME=VALUE                               add new definitions to set in preprocessor
+                    --optc=option             extra options to pass to c compiler
+  -c                                          just compile the modules, caching the results.
+  -C                                          compile to C code
+  -E                                          preprocess the input and print result to stdout
+  -k                --keepgoing               keep going on errors
+                    --cross                   enable cross-compilation, choose target with the -m flag
+                    --stop=parse/typecheck/c  stop after the given pass, parse/typecheck/c
+                    --width=COLUMNS           width of screen for debugging output
+                    --main=Main.main          main entry point
+  -m arch           --arch=arch               target architecture options
+                    --entry=&lt;expr&gt;            main entry point, showable expression
+                    --show-ho=file.ho         Show ho file
+                    --noauto                  Don&#39;t automatically load base and haskell98 packages
+  -p package                                  Load given haskell library package
+  -L path                                     Look for haskell libraries in the given directory
+                    --build-hl=desc.yaml      Build hakell library from given library description file
+                    --annotate-source=&lt;dir&gt;   Write preprocessed and annotated source code to the directory specified
+                    --deps=&lt;file.yaml&gt;        Write dependency information to file specified
+                    --interactive             run interactivly                                                             ( for debugging only)
+                    --ignore-cache            Ignore existing compilation cache entries.
+                    --readonly-cache          Do not write new information to the compilation cache.
+                    --no-cache                Do not use or update the cache.
+                    --cache-dir=JHC_CACHE     Use a global cache located in the directory passed as an argument.
+                    --stale=Module            Treat these modules as stale, even if they exist in the cache
+                    --list-libraries          List of installed libraries
+                    --tdir=dir/               specify the directory where all intermediate files/dumps will be placed.
+
+valid -d arguments: &#39;help&#39; for more info
+    all-types, aspats, atom, bindgroups, boxy-steps, c, class, class-summary, core, core-afterlift
+    core-beforelift, core-initial, core-mangled, core-mini, core-pass, core-steps, datatable
+    datatable-builtin, dcons, decls, defs, derived, e-alias, e-info, e-size, e-verbose, exports, grin
+    grin-datalog, grin-final, grin-graph, grin-initial, grin-normalized, grin-posteval, grin-preeval
+    imports, ini, instance, kind, kind-steps, optimization-stats, parsed, preprocessed, program
+    progress, renamed, rules, rules-spec, scc-modules, sigenv, srcsigs, stats, steps, tags, the
+    types, verbose, veryverbose
+
+valid -f arguments: &#39;help&#39; for more info
+    bang-patterns, boehm, controlled, cpp, debug, default, defaulting, exists, ffi, forall, full-int
+    glasgow-exts, global-optimize, inline-pragmas, jgc, lint, m4, monomorphism-restriction, negate
+    prelude, profile, raw, rules, standalone, type-analysis, type-families, unboxed-tuples
+    unboxed-values, user-kinds, wrapper</code></pre>
+<h2 id="code-options"><a href="#code-options">Code Options</a></h2>
+<p>Various options affecting how jhc interprets and compiles code can be controlled with the '-f' flag, the following options are availible, you can negate any particular one by prepending 'no-' to it.</p>
+<table>
+<thead>
+<tr class="header">
+<th align="left">Code options</th>
+<th align="left"></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left"><em>bang-patterns</em></td>
+<td align="left">- bang patterns</td>
+</tr>
+<tr class="even">
+<td align="left"><em>cpp</em></td>
+<td align="left">pass haskell source through c preprocessor</td>
+</tr>
+<tr class="odd">
+<td align="left"><em>exists</em></td>
+<td align="left">- exists keyword for existential types recognized</td>
+</tr>
+<tr class="even">
+<td align="left"><em>ffi</em></td>
+<td align="left">support foreign function declarations</td>
+</tr>
+<tr class="odd">
+<td align="left"><em>forall</em></td>
+<td align="left">- forall keyword for rank-n types and explicit quantification</td>
+</tr>
+<tr class="even">
+<td align="left"><em>m4</em></td>
+<td align="left">pass haskell source through m4 preprocessor</td>
+</tr>
+<tr class="odd">
+<td align="left"><em>prelude</em></td>
+<td align="left">implicitly import Prelude</td>
+</tr>
+<tr class="even">
+<td align="left"><em>type-families</em></td>
+<td align="left">type/data family support</td>
+</tr>
+<tr class="odd">
+<td align="left"><em>unboxed-tuples</em></td>
+<td align="left">allow unboxed tuple syntax to be recognized</td>
+</tr>
+<tr class="even">
+<td align="left"><em>unboxed-values</em></td>
+<td align="left">allow unboxed value syntax</td>
+</tr>
+<tr class="odd">
+<td align="left"><em>user-kinds</em></td>
+<td align="left">user defined kinds</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr class="header">
+<th align="left">Typechecking</th>
+<th align="left"></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left"><em>defaulting</em></td>
+<td align="left">perform defaulting of ambiguous types</td>
+</tr>
+<tr class="even">
+<td align="left"><em>monomorphism-restriction</em></td>
+<td align="left">enforce monomorphism restriction</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr class="header">
+<th align="left">Debugging</th>
+<th align="left"></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left"><em>lint</em></td>
+<td align="left">perform lots of extra type checks</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr class="header">
+<th align="left">Optimization Options</th>
+<th align="left"></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left"><em>global-optimize</em></td>
+<td align="left">perform whole program E optimization</td>
+</tr>
+<tr class="even">
+<td align="left"><em>inline-pragmas</em></td>
+<td align="left">use inline pragmas</td>
+</tr>
+<tr class="odd">
+<td align="left"><em>rules</em></td>
+<td align="left">use rules</td>
+</tr>
+<tr class="even">
+<td align="left"><em>type-analysis</em></td>
+<td align="left">perform a basic points-to analysis on types right after method generation</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr class="header">
+<th align="left">Code Generation</th>
+<th align="left"></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left"><em>boehm</em></td>
+<td align="left">use Boehm garbage collector</td>
+</tr>
+<tr class="even">
+<td align="left"><em>debug</em></td>
+<td align="left">enable debugging code in generated executable</td>
+</tr>
+<tr class="odd">
+<td align="left"><em>full-int</em></td>
+<td align="left">extend Int and Word to 32 bits on a 32 bit machine (rather than 30)</td>
+</tr>
+<tr class="even">
+<td align="left"><em>jgc</em></td>
+<td align="left">use the jgc garbage collector</td>
+</tr>
+<tr class="odd">
+<td align="left"><em>profile</em></td>
+<td align="left">enable profiling code in generated executable</td>
+</tr>
+<tr class="even">
+<td align="left"><em>raw</em></td>
+<td align="left">just evaluate main to WHNF and nothing else.</td>
+</tr>
+<tr class="odd">
+<td align="left"><em>standalone</em></td>
+<td align="left">compile to a standalone executable</td>
+</tr>
+<tr class="even">
+<td align="left"><em>wrapper</em></td>
+<td align="left">wrap main in exception handler</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr class="header">
+<th align="left">Default settings</th>
+<th align="left"></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left"><em>default</em></td>
+<td align="left">inline-pragmas rules wrapper defaulting type-analysis monomorphism-restriction global-optimize full-int prelude</td>
+</tr>
+<tr class="even">
+<td align="left"><em>glasgow-exts</em></td>
+<td align="left">forall ffi unboxed-tuples</td>
+</tr>
+</tbody>
+</table>
+<h2 id="dumping-debugging-information"><a href="#dumping-debugging-information">Dumping Debugging Information</a></h2>
+<p>You can have jhc print out a variety of things while running as Controlled by the '-d' flag. The following is a list of possible parameters you can pass to '-d'.</p>
+<table>
+<thead>
+<tr class="header">
+<th align="left">Front End</th>
+<th align="left"></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left"><em>defs</em></td>
+<td align="left">Show all defined names in a module</td>
+</tr>
+<tr class="even">
+<td align="left"><em>derived</em></td>
+<td align="left">show generated derived instances</td>
+</tr>
+<tr class="odd">
+<td align="left"><em>exports</em></td>
+<td align="left">show which names are exported from each module</td>
+</tr>
+<tr class="even">
+<td align="left"><em>imports</em></td>
+<td align="left">show in scope names for each module</td>
+</tr>
+<tr class="odd">
+<td align="left"><em>ini</em></td>
+<td align="left">all ini configuration options</td>
+</tr>
+<tr class="even">
+<td align="left"><em>parsed</em></td>
+<td align="left">parsed code</td>
+</tr>
+<tr class="odd">
+<td align="left"><em>preprocessed</em></td>
+<td align="left">code after preprocessing/deliting</td>
+</tr>
+<tr class="even">
+<td align="left"><em>renamed</em></td>
+<td align="left">code after uniqueness renaming</td>
+</tr>
+<tr class="odd">
+<td align="left"><em>scc-modules</em></td>
+<td align="left">show strongly connected modules in dependency order</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr class="header">
+<th align="left">Type Checker</th>
+<th align="left"></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left"><em>all-types</em></td>
+<td align="left">show unified type table, after everything has been typechecked</td>
+</tr>
+<tr class="even">
+<td align="left"><em>aspats</em></td>
+<td align="left">show as patterns</td>
+</tr>
+<tr class="odd">
+<td align="left"><em>bindgroups</em></td>
+<td align="left">show bindgroups</td>
+</tr>
+<tr class="even">
+<td align="left"><em>boxy-steps</em></td>
+<td align="left">show step by step what the type inferencer is doing</td>
+</tr>
+<tr class="odd">
+<td align="left"><em>class</em></td>
+<td align="left">detailed information on each class</td>
+</tr>
+<tr class="even">
+<td align="left"><em>class-summary</em></td>
+<td align="left">summary of all classes</td>
+</tr>
+<tr class="odd">
+<td align="left"><em>dcons</em></td>
+<td align="left">data constructors</td>
+</tr>
+<tr class="even">
+<td align="left"><em>decls</em></td>
+<td align="left">processed declarations</td>
+</tr>
+<tr class="odd">
+<td align="left"><em>instance</em></td>
+<td align="left">show instances</td>
+</tr>
+<tr class="even">
+<td align="left"><em>kind</em></td>
+<td align="left">show results of kind inference for each module</td>
+</tr>
+<tr class="odd">
+<td align="left"><em>kind-steps</em></td>
+<td align="left">show steps of kind inference</td>
+</tr>
+<tr class="even">
+<td align="left"><em>program</em></td>
+<td align="left">impl expls, the whole shebang.</td>
+</tr>
+<tr class="odd">
+<td align="left"><em>sigenv</em></td>
+<td align="left">initial signature environment</td>
+</tr>
+<tr class="even">
+<td align="left"><em>srcsigs</em></td>
+<td align="left">processed signatures from source code</td>
+</tr>
+<tr class="odd">
+<td align="left"><em>types</em></td>
+<td align="left">display unified type table containing all defined names</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr class="header">
+<th align="left">Intermediate code</th>
+<th align="left"></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left"><em>core</em></td>
+<td align="left">show intermediate core code</td>
+</tr>
+<tr class="even">
+<td align="left"><em>core-afterlift</em></td>
+<td align="left">show final core before writing ho file</td>
+</tr>
+<tr class="odd">
+<td align="left"><em>core-beforelift</em></td>
+<td align="left">show core before lambda lifting</td>
+</tr>
+<tr class="even">
+<td align="left"><em>core-initial</em></td>
+<td align="left">show core right after E.FromHs conversion</td>
+</tr>
+<tr class="odd">
+<td align="left"><em>core-mangled</em></td>
+<td align="left">de-typed core right before it is converted to grin</td>
+</tr>
+<tr class="even">
+<td align="left"><em>core-mini</em></td>
+<td align="left">show details even when optimizing individual functions</td>
+</tr>
+<tr class="odd">
+<td align="left"><em>core-pass</em></td>
+<td align="left">show each iteration of code while transforming</td>
+</tr>
+<tr class="even">
+<td align="left"><em>core-steps</em></td>
+<td align="left">show what happens in each pass</td>
+</tr>
+<tr class="odd">
+<td align="left"><em>datatable</em></td>
+<td align="left">show data table of constructors</td>
+</tr>
+<tr class="even">
+<td align="left"><em>datatable-builtin</em></td>
+<td align="left">show data table entries for some built in types</td>
+</tr>
+<tr class="odd">
+<td align="left"><em>e-alias</em></td>
+<td align="left">show expanded aliases</td>
+</tr>
+<tr class="even">
+<td align="left"><em>e-info</em></td>
+<td align="left">show info tags on all bound variables</td>
+</tr>
+<tr class="odd">
+<td align="left"><em>e-size</em></td>
+<td align="left">print the size of E after each pass</td>
+</tr>
+<tr class="even">
+<td align="left"><em>e-verbose</em></td>
+<td align="left">print very verbose version of E code always</td>
+</tr>
+<tr class="odd">
+<td align="left"><em>optimization-stats</em></td>
+<td align="left">show combined stats of optimization passes</td>
+</tr>
+<tr class="even">
+<td align="left"><em>rules</em></td>
+<td align="left">show all user rules and catalysts</td>
+</tr>
+<tr class="odd">
+<td align="left"><em>rules-spec</em></td>
+<td align="left">show specialization rules</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr class="header">
+<th align="left">Grin code</th>
+<th align="left"></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left"><em>grin</em></td>
+<td align="left">dump all grin to the screen</td>
+</tr>
+<tr class="even">
+<td align="left"><em>grin-datalog</em></td>
+<td align="left">print out grin information in a format suitable for loading into a database</td>
+</tr>
+<tr class="odd">
+<td align="left"><em>grin-final</em></td>
+<td align="left">final grin before conversion to C</td>
+</tr>
+<tr class="even">
+<td align="left"><em>grin-graph</em></td>
+<td align="left">print dot file of final grin code to outputname_grin.dot</td>
+</tr>
+<tr class="odd">
+<td align="left"><em>grin-initial</em></td>
+<td align="left">grin right after conversion from core</td>
+</tr>
+<tr class="even">
+<td align="left"><em>grin-normalized</em></td>
+<td align="left">grin right after first normalization</td>
+</tr>
+<tr class="odd">
+<td align="left"><em>grin-posteval</em></td>
+<td align="left">show grin code just before eval/apply inlining</td>
+</tr>
+<tr class="even">
+<td align="left"><em>grin-preeval</em></td>
+<td align="left">show grin code just before eval/apply inlining</td>
+</tr>
+<tr class="odd">
+<td align="left"><em>steps</em></td>
+<td align="left">show interpreter go</td>
+</tr>
+<tr class="even">
+<td align="left"><em>tags</em></td>
+<td align="left">list of all tags and their types</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr class="header">
+<th align="left">Backend code</th>
+<th align="left"></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left"><em>c</em></td>
+<td align="left">don't delete C source file after compilation</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr class="header">
+<th align="left">Internal</th>
+<th align="left"></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left"><em>atom</em></td>
+<td align="left">dump atom table on exit</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr class="header">
+<th align="left">General</th>
+<th align="left"></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left"><em>progress</em></td>
+<td align="left">show basic progress indicators</td>
+</tr>
+<tr class="even">
+<td align="left"><em>stats</em></td>
+<td align="left">show extra information about stuff</td>
+</tr>
+<tr class="odd">
+<td align="left"><em>verbose</em></td>
+<td align="left">progress</td>
+</tr>
+<tr class="even">
+<td align="left"><em>veryverbose</em></td>
+<td align="left">progress stats</td>
+</tr>
+</tbody>
+</table>
+<h1 id="pragmas"><a href="#pragmas">Pragmas</a></h1>
+<p>Pragmas are special compiler directives that change its behavior in certain ways. In general, each compiler is free to define its own pragmas however jhc does try to implement the same ones as other compilers when it makes sense. pragmas appear in source code as {-# PRAGMANAME ... #-}</p>
+<h2 id="function-properties"><a href="#function-properties">Function Properties</a></h2>
+<p>These must appear in the same file as the definition of a function. To apply one to a instance or class method, you must place it in the where clause of the instance or class declaration.</p>
+<table>
+<thead>
+<tr class="header">
+<th align="left">Pragma</th>
+<th align="left"></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left"><em>NOINLINE</em></td>
+<td align="left">Do not inline the given function during core transformations. The function <em>may</em> be inlined during grin transformations.</td>
+</tr>
+<tr class="even">
+<td align="left"><em>INLINE</em></td>
+<td align="left">Inline this function whenever possible</td>
+</tr>
+<tr class="odd">
+<td align="left"><em>SUPERINLINE</em></td>
+<td align="left">Always inline no matter what, even if it means making a local copy of the functions body.</td>
+</tr>
+<tr class="even">
+<td align="left"><em>VCONSTRUCTOR</em></td>
+<td align="left">Treat the function as a virtual constructor. CPR analysis and the worker/wrapper transforms will treat the function application as if it were a constructor. This implies 'NOINLINE'.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="class-pragmas"><a href="#class-pragmas">Class Pragmas</a></h2>
+<table>
+<thead>
+<tr class="header">
+<th align="left">Pragma</th>
+<th align="left"></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left"><em>NOETA</em></td>
+<td align="left">By default, jhc eta-expands all class methods to help enable optimizations. This disables this behavior.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="rulesspecializations"><a href="#rulesspecializations">Rules/Specializations</a></h2>
+<table>
+<thead>
+<tr class="header">
+<th align="left">Pragma</th>
+<th align="left"></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left"><em>RULES</em></td>
+<td align="left">rewrite rules. These have the same syntax and behave similarly to GHC's rewrite rules, except 'phase' information is not allowed.</td>
+</tr>
+<tr class="even">
+<td align="left"><em>CATALYST</em></td>
+<td align="left">A special type of rewrite rule that only fires if it enables the use of another RULE, so a CATALYST may allow optimizations that require passing through a non-optimal intermediate stage.</td>
+</tr>
+<tr class="odd">
+<td align="left"><em>SPECIALIZE</em></td>
+<td align="left">create a version of a function that is specialized for a given type</td>
+</tr>
+<tr class="even">
+<td align="left"><em>SUPERSPECIALIZE</em></td>
+<td align="left">has the same effect as SPECIALIZE, but also places a run-time check in the generic version of the function to determine whether to call the specialized version.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="type-pragmas"><a href="#type-pragmas">Type Pragmas</a></h2>
+<table>
+<thead>
+<tr class="header">
+<th align="left">Pragma</th>
+<th align="left"></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left"><em>CTYPE</em></td>
+<td align="left">Specify the external type that a data or newtype should use for foreign function interfaces.</td>
+</tr>
+<tr class="even">
+<td align="left"></td>
+<td align="left">The type must be a newtype or unary data constructor of a type that is already foreignable.</td>
+</tr>
+<tr class="odd">
+<td align="left"></td>
+<td align="left">Example</td>
+</tr>
+<tr class="even">
+<td align="left"></td>
+<td align="left"><sub>~</sub></td>
+</tr>
+<tr class="odd">
+<td align="left"></td>
+<td align="left">data {-# CTYPE &quot;unsigned short&quot; #-} CUShort = CUShort Word16</td>
+</tr>
+<tr class="even">
+<td align="left"></td>
+<td align="left"><sub>~</sub></td>
+</tr>
+</tbody>
+</table>
+<h2 id="header-pragmas"><a href="#header-pragmas">Header Pragmas</a></h2>
+<p>These pragmas are only valid in the 'head' of a file, meaning they must come before the initial 'module' definition and in the first 4096 bytes of the file and must be preceded by and contain only characters in the ASCII character set.</p>
+<p>OPTIONS_JHC : Specify extra options to use when processing this file. The options available are equivalent to the command line options, though, not all may have meaning when applied to a single file.</p>
+<p>LANGUAGE : Specify various language options</p>
+<h1 id="extensions"><a href="#extensions">Extensions</a></h1>
+<h2 id="module-search-path"><a href="#module-search-path">Module Search Path</a></h2>
+<p>Modules in jhc are searched for based on their name as in other Haskell compilers. However in addition to searching for 'Data/Foo.hs' for the module 'Data.Foo', jhc will also search for 'Data.Foo.hs'.</p>
+<h2 id="extensions-to-the-ffi"><a href="#extensions-to-the-ffi">extensions to the FFI</a></h2>
+<h3 id="foreign-imports-with-multiple-return-values."><a href="#foreign-imports-with-multiple-return-values.">foreign imports with multiple return values.</a></h3>
+<p>foreign C imports may return multiple values. To indicate this is the case, use an unboxed tuple as the return value. The first return value will be the value the function directly returns, the rest will be passed as pointers at the end of the functions argument list. Only pure (non IO) functions may return multiple values.</p>
+<pre><code>-- frexp has C prototype
+-- double frexp(double x, int *exp);
+-- so it would normally have an import like so, requiring the IO module and
+-- Storable to call what is otherwise a pure function.
+
+foreign import ccall &quot;math.h frexp&quot;  c_frexp :: Double -&gt; Ptr CInt -&gt; IO Double
+
+-- This extension allows it to be declared as so
+foreign import ccall &quot;math.h frexp&quot;  c_frexp2 :: Double -&gt; (# Double, CInt #)
+
+-- The second return value is added as the last &#39;exp&#39; parameter then read out
+-- of the allocated memory. The contents of the memory passed into the function
+-- is undefined.</code></pre>
+<h3 id="capi-calling-convention"><a href="#capi-calling-convention">'capi' calling convention</a></h3>
+<p>The 'capi' calling convention may be used instead of 'ccall' for static imports. The convention means that the foreign function may not be addressable as an address, but rather may be implemnted as a macro, builtin, or other compiler specific feature. jhc will ensure that the routine is never used as a pointer and the headers specified in the dependency string are included anywhere the imported function appears. This differs from 'ccall' in that ccall makes no guarentees the given header file will be in scope and that a linker symbol of the exact name is exported.</p>
+<h3 id="package-relative-dependencies"><a href="#package-relative-dependencies">package relative dependencies</a></h3>
+<p>dependecies in a foreign import may be written as p:foo.c or p:foo.h, this means that the file should be interpreted as part of the internal implementation of the package. jhc willl ensure the files do not clash with those of other packages that may have the same name. The files should be listed in the c-files and c-headers sections of the library config file.</p>
+<h2 id="explicit-namespaces-in-importexport-lists"><a href="#explicit-namespaces-in-importexport-lists">Explicit namespaces in import/export lists</a></h2>
+<p>jhc allows explicit namespaces in import and export lists. These may be used to restrict or modiy what is imported/exported by a declaration.</p>
+<pre><code>* &#39;type&#39; - The name is a type, as in something defined by &#39;type&#39;, &#39;newtype&#39;,
+   or &#39;data&#39;, or the constructors of a kind declaration.
+* &#39;class&#39; - Specifies that the name is that of a class.
+* &#39;data&#39;  - Specifies that the name is a data constructor.
+* &#39;kind&#39;  - specifies that the name is a user defined kind.</code></pre>
+<p>In addition, another extension is that classes and types are in independent namespaces, so a type and a class of the same name may be in scope and not conflict.</p>
+<h2 id="user-defined-kinds"><a href="#user-defined-kinds">user defined kinds</a></h2>
+<p>Jhc allows users to define custom kinds when the -fuser-kinds extension is enabled. The syntax is:</p>
+<pre><code>data kind Nat = Z | S Nat</code></pre>
+<p>This will define a new kind 'Nat' and two types 'Z' and 'S' which inhabit it. The types introduced by kind declarations represent unboxed values with no values, So they have no run-time representation (notably, not even ⊥)</p>
+<h2 id="standalone-deriving"><a href="#standalone-deriving">Standalone deriving</a></h2>
+<p>Jhc supports a standalone deriving mechanism under certain circumstances.</p>
+<h2 id="rank-n-polymorphism"><a href="#rank-n-polymorphism">Rank-N Polymorphism</a></h2>
+<p>Jhc supports higher ranked polymorphism. jhc will never infer types of higher rank, however when the context unambiguously specifies a higher ranked type, it will be used. For instance, user supplied type annotations and arguments to data constructors defined to by polymorphic will get the correct polymorphic type.</p>
+<h2 id="existential-types"><a href="#existential-types">Existential types</a></h2>
+<p>Jhc supports first class existential types, using the 'exists' keyword. It also supports existential data types in a similar fashion to ghc.</p>
+<h2 id="unboxed-values"><a href="#unboxed-values">Unboxed Values</a></h2>
+<p>Unboxed values in jhc are specified in a similar fashion to GHC however the lexical syntax is not changed to allow # in identifiers. # is still used in the syntax for various unboxed constructs, but normal Haskell rules apply to haskell identifiers. The convention is to suffix such types with '_' to indicate their status as unboxed. All unboxed values other than unboxed tuples are enabled by the -funboxed-value flag. For compatibility with GHC, the MagicHash extension name also turns on unboxed-values.</p>
+<h3 id="unboxed-tuples"><a href="#unboxed-tuples">Unboxed Tuples</a></h3>
+<p>Jhc supports unboxed tuples with the same syntax as GHC, (# 2, 4 #) is an unboxed tuple of two numbers. Unboxed tuples are enabled with -funboxed-tuples. Unboxed tuples are kind-polymorphic, able to hold both boxed and unboxed values. (but not another unboxed tuple)</p>
+<h3 id="unboxed-strings"><a href="#unboxed-strings">Unboxed Strings</a></h3>
+<p>Unboxed strings are enabled with the -funboxed-values flag. They are specified like a normal string but have a '#' at the end. Unboxed strings have types 'BitsPtr_'.</p>
+<h3 id="unboxed-characters"><a href="#unboxed-characters">Unboxed Characters</a></h3>
+<p>Unboxed characters can be expressed by putting a hash after a normal character literal. Unboxed characters are of type Char_ which is a newtype of Bits32_ and defined in Jhc.Prim.Bits</p>
+<h3 id="unboxed-numbers"><a href="#unboxed-numbers">Unboxed Numbers</a></h3>
+<p>Unboxed numbers are enabled with the -funboxed-values flag. They are postpended with a '#' such as in 3# or 4#. Jhc supports a limited form of type inference for unboxed numbers, if the type is fully specified by the environment and it is a suitable unboxed numeric type then that type is used. Otherwise it defaults to Int__. Whether the type is fully specifed follows the same rules as rank-n types. Unboxed numbers do the right thing for enumerations, so 0# can be used for the unboxed False value and the appropriate type will be infered.</p>
+<h3 id="operations-on-unboxed-values"><a href="#operations-on-unboxed-values">Operations on unboxed values</a></h3>
+<p>To operate on unboxed vaules you need to bring the appropriate primitive operators into scope. You can do this via the special form of FFI declaration for importing primitives. Any C-- primitive may be imported as well as a variety of utility routines. the primitive import mechanism is 'smart' in that it will dig through newtypes and take care of boxing/unboxing values as needed. So you can import a primitive on Char and it will take care of boxing the value up in the 'Char' constructor as well as the Char_ newtype for Bits32_, ultimately choosing the right Bits32_ primitive. imported primitives are normal haskell declarations so may be exported/imported from modules or passed as higher order functions like normal.</p>
+<h2 id="foreign-primitives"><a href="#foreign-primitives">Foreign Primitives</a></h2>
+<p>In addition to foreign imports of external functions as described in the FFI spec. Jhc supports 'primitive' imports that let you communicate primitives directly to the compiler. In general, these should not be used other than in the implementation of the standard libraries. They generally do little error checking as it is assumed you know what you are doing if you use them. All haskell visible entities are introduced via foreign declarations in jhc.</p>
+<p>They all have the form</p>
+<pre><code>foreign import primitive &quot;specification&quot; haskell_name :: type</code></pre>
+<p>where &quot;specification&quot; is one of the following</p>
+<p>seq : evaluate first argument to WHNF, then return the second argument</p>
+<p>zero,one : the values zero and one of any primitive type.</p>
+<p>const.C_CONSTANT : the text following const is directly inserted into the resulting C file</p>
+<p>peek.TYPE : the peek primitive for raw value TYPE</p>
+<p>poke.TYPE : the poke primitive for raw value TYPE</p>
+<p>sizeOf.TYPE, alignmentOf.TYPE, minBound.TYPE, maxBound.TYPE, umaxBound.TYPE : various properties of a given internal type.</p>
+<p>error.MESSAGE : results in an error with constant message MESSAGE.</p>
+<p>constPeekByte : peek of a constant value specialized to bytes, used internally by Jhc.String</p>
+<p>box : take an unboxed value and box it, the shape of the box is determined by the type at which this is imported</p>
+<p>unbox : take an boxed value and unbox it, the shape of the box is determined by the type at which this is imported</p>
+<p>increment, decrement : increment or decrement a numerical integral primitive value</p>
+<p>fincrement, fdecrement : increment or decrement a numerical floating point primitive value</p>
+<p>exitFailure__ : abort the program immediately</p>
+<p>C-- Primitive : any C-- primitive may be imported in this manner.</p>
+<h1 id="differences"><a href="#differences">Differences</a></h1>
+<h2 id="differences-from-haskell-98"><a href="#differences-from-haskell-98">Differences from Haskell 98</a></h2>
+<h3 id="language-differences"><a href="#language-differences">Language Differences</a></h3>
+<ul>
+<li><p>Class contexts on data types are silently ignored.</p></li>
+<li><p>Class methods are fully 'eta expanded' out to the argument count specified by the type. This is often beneficial as instances that need to share partial applications are rare. This behavior can be turned off with the NOETA pragma for specific methods.</p></li>
+</ul>
+<h3 id="library-changes"><a href="#library-changes">Library Changes</a></h3>
+<p>In addition to a larger set of base libraries roughly modeled on GHC's base. Jhc provides a number of extensions/minor modifications to the standard libraries. These are designed to be mostly backwards compatible and most are to the class system.</p>
+<ul>
+<li>Data.Bits
+<ul>
+<li>Num is no longer a super class of Data.Bits. It never should have been.</li>
+<li>There are new methods logicalShiftR and arithmeticShiftR that do a logical and arithmetic shift respectively. shiftR will always map to one of those as appropriate.</li>
+<li>shiftR and shiftL do not check for negative arguments, if you might want negative arguments, use the general 'shift' routine. 'shift' also comes in logical and arithmetic varieties.</li>
+</ul></li>
+</ul>
+<h3 id="library-additions"><a href="#library-additions">Library Additions</a></h3>
+<p>There are many other additional libraries provided with jhc, here I list only changes that affect modules that are defined by the haskell 98 or FFI specifications.</p>
+<ul>
+<li><p>Data.Int and Data.Word provide WordPtr, WordMax, IntPtr, and IntMax that correspond to the C types uintptr_t, uintmax_t, intptr_t, and intmax_t respectively.</p></li>
+<li><p>fromInt,toInt,fromDouble,toDouble have been added alongside Integer and Rational routines in their respective classes.</p></li>
+<li><p>floating point truncation and rounding functions have varieties that don't return an integral type, but rather return something of the same type as its argument. These have the same name but end in 'f'.</p></li>
+</ul>
+<h2 id="notable-differences-from-ghc"><a href="#notable-differences-from-ghc">Notable Differences from GHC</a></h2>
+<p>Jhc differs from GHC in certain ways that are allowed by Haskell 98, but might come as a surprise to some.</p>
+<ul>
+<li><p>An Int may be only 30 bits and may not observe simple binary truncation on overflow. If you need known bit width and binary semantics for your numbers then use the types in Data.Int and Data.Word. Overflow on Int or Word has undefined results.</p></li>
+<li><p>A Char may only preserve values within the Unicode range. Storing values greater than 0x10FFFF has undefined results.</p></li>
+<li><p>The Int and Word types are at most 32 bits, even on 64 bit architectures.</p></li>
+<li><p>All text based IO is performed according to the current locale. This means that Unicode works seamlessly, but older programs that assumed IO was performed by simple truncation of chars down to 8 bits will fail. Use the explicit binary routines if you need binary IO.</p></li>
+</ul>
+<h2 id="differences-that-are-considered-misfeatures"><a href="#differences-that-are-considered-misfeatures">Differences That are Considered Misfeatures</a></h2>
+<p>These misfeatures will be fixed at some point.</p>
+<ul>
+<li><p>Integer corresponds to IntMax rather than an arbitrary precision type. As soon as a suitable arbitrary precision library emerges, it will be replaced.</p></li>
+<li><p>Ix is not derivable.</p></li>
+</ul>
+<h1 id="crosscompilation"><a href="#crosscompilation">CrossCompilation</a></h1>
+<h2 id="basics"><a href="#basics">Basics</a></h2>
+<p>Unlike many other compilers, jhc is a native cross compiler. What this means is that every compile of jhc is able to create code for all possible target systems. This leads to many simplifications when it comes to cross compiling with jhc. Basically in order to cross compile, you need only pass the flag '--cross' to jhc, and pass an appropriate '-m' option to tell jhc what machine you are targetting. An example would be</p>
+<pre><code>; jhc --cross -mwin32 test/HelloWorld.hs</code></pre>
+<p>The targets list is extensible at run-time via the targets.ini file explained below.</p>
+<h2 id="targets.ini"><a href="#targets.ini">targets.ini</a></h2>
+<p>This file determines what targets are available. The format consists of entries as follows.</p>
+<pre><code>[targetname]
+key1=value
+key2=value
+key3+=value
+merge=targetname2</code></pre>
+<p>merge is a special key meaning to merge the contents of another target into the current one. The configuration file is read in order, and the final value set for a given key is the one that is used.</p>
+<p>An example describing how to cross compile for windows is as follows:</p>
+<pre><code>[win32]
+cc=i386-mingw32-gcc
+cflags+=-mwindows -mno-cygwin
+executable_extension=.exe
+merge=i686</code></pre>
+<p>This sets the compiler to use as well as a few other options then jumps to the generic i686 routine. The special target [default] is always read before all other targets. If '--cross' is specified on the command line then this is the only implicitly included configuration, otherwise jhc will assume you are compiling for the current architecture and choose an appropriate target to include in addition to default.</p>
+<p>jhc will attempt to read several targets.ini files in order. they are</p>
+<p>$PREFIX/etc/jhc-$VERSION/targets.ini : this is the targets.ini that is included with jhc and contains the default options.</p>
+<p>$PREFIX/etc/jhc-$VERSION/targets-local.ini : jhc will read this if it exists, it is used to specify custom system wide configuration options, such as the name of local compilers.</p>
+<p>$HOME/.jhc/targets.ini : this is where a users local configuration information goes.</p>
+<p>$HOME/etc/jhc/targets.ini : this is simply for people that prefer to not use hidden directories for configuration</p>
+<p>The last value specified for an option is the one used, so a users local configuration overrides the system local version which overrides the built in options.</p>
+<h2 id="options-available"><a href="#options-available">Options available</a></h2>
+<table>
+<thead>
+<tr class="header">
+<th align="left">Option</th>
+<th align="left">Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left"><em>cc</em></td>
+<td align="left">what c compiler to use. generally this will be gcc for local builds and something like <span class="math"><em>A</em><em>R</em><em>C</em><em>H</em> − </span>HOST-gcc for cross compiles</td>
+</tr>
+<tr class="even">
+<td align="left"><em>byteorder</em></td>
+<td align="left">one of <em>le</em> or <em>be</em> for little or big endian</td>
+</tr>
+<tr class="odd">
+<td align="left"><em>gc</em></td>
+<td align="left">what garbage collector to use. It should be one of <em>static</em> or <em>boehm</em>.</td>
+</tr>
+<tr class="even">
+<td align="left"><em>cflags</em></td>
+<td align="left">options to pass to the c compiler</td>
+</tr>
+<tr class="odd">
+<td align="left"><em>cflags_debug</em></td>
+<td align="left">options to pass to the c compiler only when debugging is enabled</td>
+</tr>
+<tr class="even">
+<td align="left"><em>cflags_nodebug</em></td>
+<td align="left">options to pass to the c compiler only when debugging is disabled</td>
+</tr>
+<tr class="odd">
+<td align="left"><em>profile</em></td>
+<td align="left">whether to include profiling code in the generated executable</td>
+</tr>
+<tr class="even">
+<td align="left"><em>autoload</em></td>
+<td align="left">what haskell libraries to autoload, seperated by commas.</td>
+</tr>
+<tr class="odd">
+<td align="left"><em>executable_extension</em></td>
+<td align="left">specifies an extension that should be appended to executable files, (i.e. .EXE on windows)</td>
+</tr>
+<tr class="even">
+<td align="left"><em>merge</em></td>
+<td align="left">a special option that merges the contents of another configuration target into the currrent one.</td>
+</tr>
+<tr class="odd">
+<td align="left"><em>bits</em></td>
+<td align="left">the number of bits a pointer contains on this architecture</td>
+</tr>
+<tr class="even">
+<td align="left"><em>bits_max</em></td>
+<td align="left">the number of bits in the largest integral type. should be the number of bits in the 'intmax_t' C type.</td>
+</tr>
+<tr class="odd">
+<td align="left"><em>arch</em></td>
+<td align="left">what to pass to gcc as the architecture</td>
+</tr>
+</tbody>
+</table>
+<h2 id="special-defines-to-set-cflags"><a href="#special-defines-to-set-cflags">Special defines to set cflags</a></h2>
+<table>
+<thead>
+<tr class="header">
+<th align="left">Define</th>
+<th align="left">Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">_JHC_ARM_STAY_IN_THUMB_MODE</td>
+<td align="left">set bit0 to any function pointers, for Cortex-M*. (<a href="http://communities.mentor.com/community/cs/archives/arm-gnu/msg01904.html">more detail</a>)</td>
+</tr>
+<tr class="even">
+<td align="left">_JHC_JGC_NAIVEGC</td>
+<td align="left">run gc when have no more blocks.</td>
+</tr>
+<tr class="odd">
+<td align="left">_JHC_JGC_STACKGROW</td>
+<td align="left">number of stack entry growed when run short of it.</td>
+</tr>
+<tr class="even">
+<td align="left">_JHC_JGC_FIXED_MEGABLOCK</td>
+<td align="left">use a single megablock without allocation megablock.</td>
+</tr>
+<tr class="odd">
+<td align="left">_JHC_JGC_BLOCK_SHIFT</td>
+<td align="left">bit shift to specify block size. Use it internally like this: (1 &lt;&lt; (<em>JHC</em>JGC_BLOCK_SHIFT)).</td>
+</tr>
+<tr class="even">
+<td align="left">_JHC_JGC_MEGABLOCK_SHIFT</td>
+<td align="left">bit shift to specify megablock size. Use it internally like this: (1 &lt;&lt; (<em>JHC</em>JGC_MEGABLOCK_SHIFT)).</td>
+</tr>
+</tbody>
+</table>
+<h1 id="internals"><a href="#internals">Internals</a></h1>
+<h2 id="the-run-time-system"><a href="#the-run-time-system">The Run Time System</a></h2>
+<p>Jhc is very minimalist in that it does not have a precompiled run time system, but rather generates what is needed as part of the compilation process. However, back ends do have specific run-time representations of data, which can be affected by things like the choice of garbage collector. The following describes the general layout for the C based back-ends, but compiler options such as garbage collection method or whether we do full program analysis, will affect which features are used and whether certain optimized layouts are possible.</p>
+<p>Unboxed values directly translate to values in the target language, an unboxed Int will translate directly into an 'int' as an argument and an unboxed pointer will be a raw pointer. Unboxed values have no special interpretation and are <em>not</em> followed by the garbage collector. If the target language does not support a feature such as multiple return values, it will have to be simulated. It would not be wrong to think of Grin code that only deals with unboxed values to be isomorphic to C-- or C augmented with multiple return values.</p>
+<p>Boxed values have a standard representation and can be followed. Unlike some other implementation, being boxed does not imply the object is located on the heap. It may be on the stack, heap, or even embedded within the smart pointer itself. Being boxed only means that the object may be represented by a smart pointer, which may or may not actually be a pointer in the traditional sense.</p>
+<p>A boxed value in jhc is represented by a 'smart pointer' of c type sptr_t. a smart pointer is the size of a native pointer, but can take on different roles depending on a pair of tag bits, called the ptype.</p>
+<p>smart pointers take on a general form as follows:</p>
+<pre><code>-------------------------
+|    payload        | GL|
+-------------------------
+
+  G - if set, then the garbage collector should not treat value as a pointer to be followed
+  L - lazy, this bit being set means the value is potentially not in WHNF</code></pre>
+<p>A sptr_t on its own in the wild can only take on one of the following forms:</p>
+<pre><code>-------------------------
+|    whnf raw value | 10|
+-------------------------
+
+-------------------------
+|    whnf location  | 00|
+-------------------------</code></pre>
+<p>WHNF stands for 'Weak Head Normal Form' and means that the value is not a suspended function and hence not a pointer to a thunk. It may be directly examined and need not be evaluated. wptr_t is an alias for sptr_t that is guarenteed to be of one of the above forms. It is used to improve safety for when we can statically know that a value is WHNF and hence we can skip the expensive 'eval'.</p>
+<p>The difference between the raw value and the whnf location is that the first contains uninterpreted bits, while the second is a pointer to a location on the heap or stack and hence the garbage collector should follow it. The format of the memory pointed to by the whnf location is unspecified and dependent on the actual type being represented.</p>
+<p>Partial (unsaturated) applications are normal WHNF values. Saturated applications which may be 'eval'ed and updated are called thunks and must not be pointed to by WHNF pointers. Their representation follows.</p>
+<pre><code>-------------------------
+|   lazy location   | 01|
+-------------------------</code></pre>
+<p>A lazy location points to either a thunk, or a redirection to a WHNF value. A lazy location is always a pointer to an allocated block of memory which always begins with a restricted smart pointer. This restricted smart pointer is represented by the C type alias 'fptr_t'. fptr_t's only occur as the first entry in a lazy location, they never are passed around as objects in their own right.</p>
+<p>A fptr_t may be a whnf value or a code pointer. If a fptr_t is a whnf value (of one of the two forms given above) then it is called a redirection, the lazy location should be treated exactly as if it were the whnf given. This is used to redirect an evaluated thunk to its computed value.</p>
+<p>A fptr_t may also be a 'code pointer' in which case the lazy location is called a thunk. A code pointer is a pointer to executable machine code that evaluates a closure and returns a wptr_t, the returned wptr_t is then generally written over the code pointer, turning the thunk into a redirection. It is the responsibility of the code pointed to to perform this redirection.</p>
+<pre><code>-------------------------
+|    code pointer   | 11|
+-------------------------
+|     data ...          |</code></pre>
+<p>When debugging, the special code pointer BLACK_HOLE is also sometimes stored in a fptr_t to detect certain run-time errors.</p>
+<p>Note that unlike other implementations, a fptr_t may <em>not</em> be another lazy location. you can not have chained redirections, a redirection is always a redirection to a whnf value.</p>
+<pre><code>sptr_t - a tagged smart pointer, may contain a whnf value or a lazy location.
+wptr_t - a tagged smart pointer that contains a whnf value (either raw or a location)
+fptr_t - a tagged smart pointer, may contain a whnf value indicating a redirection, or a code pointer indicating a thunk.</code></pre>
+<h2 id="jhc-core-type-system"><a href="#jhc-core-type-system">Jhc Core Type System</a></h2>
+<p>Jhc's core is based on a pure type system. A pure type system (also called a PTS) is actually a parameterized set of type systems. Jhc's version is described by the following.</p>
+<pre><code>Sorts  = (*, !, **, #, (#), ##, □)
+Axioms = (*:**, #:##, !:**, **:□, ##:□)
+
+-- sort kind
+*   is the kind of boxed values
+!   is the kind of boxed strict values
+#   is the kind of unboxed values
+(#) is the kind of unboxed tuples
+-- sort superkind
+**  is the superkind of all boxed value
+##  is the superkind of all unboxed values
+-- sort box
+□   superkinds inhabit this
+
+in addition there exist user defined kinds, which are always of supersort ##</code></pre>
+<p>The following Rules table shows what sort of abstractions are allowed, a rule of the form (A,B,C) means you can have functions of things of sort A to things of sort B and the result is something of sort C. <em>Function</em> in this context subsumes both term and type level abstractions.</p>
+<p>Notice that functions are always boxed, but may be strict if they take an unboxed tuple as an argument. When a function is strict it means that it is represented by a pointer to code directly, it cannot be a suspended value that evaluates to a function.</p>
+<p>These type system rules apply to lambda abstractions. It is possible that data constructors might exist that cannot be given a type on their own with these rules, even though when fully applied it has a well formed type. An example would be unboxed tuples. This presents no difficulty as one concludes correctly that it is a type error for these constructors to ever appear when not fully saturated with arguments.</p>
+<pre><code>as a shortcut we will use *# to mean every combination involving * and #, and so forth.
+for instance, (*#,*#,*) means the set (*,*,*) (#,*,*) (*,#,*) (#,#,*)
+
+Rules =
+   (*#!,*#!,*)  -- functions from values to values are boxed and lazy
+   (*#!,(#),*)  -- functions from values to unboxed tuples are boxed and lazy
+   ((#),*#!,!)  -- functions from unboxed tuples to values are boxed and strict
+   ((#),(#),!)  -- functions from unboxed tuples to unboxed tuples are boxed and strict
+   (**,*,*)     -- may have a function from an unboxed type to a value
+   (**,#,*)
+   (**,!,*)
+   (**,**,**)  -- we have functions from types to types
+   (**,##,##)  -- MutArray_ :: * -&gt; #
+   (##,##,##)  -- Complex_ :: # -&gt; #
+
+The defining feature of boxed values is
+
+_|_ :: t iff t::*
+
+This PTS is functional but not injective</code></pre>
+<p>The PTS can be considered stratified into the following levels</p>
+<pre><code>□                - sort box
+**,##,           - sort superkind
+*,#,(#),!        - sort kind
+Int,Bits32_,Char - sort type
+3,True,&quot;bob&quot;     - sort value</code></pre>
+<h3 id="on-boxed-kinds"><a href="#on-boxed-kinds">On boxed kinds</a></h3>
+<p>The boxed kinds (* and !) represent types that have a uniform run time representation. Due to this, functions may be written that are polymorphic in types of these kinds. Hence the rules of the form (**,?,?), allowing taking types of boxed kinds as arguments.</p>
+<p>the unboxed kind # is inhabited with types that have their own specific run time representation. Hence you cannot write functions that are polymorphic in unboxed types</p>
+<h3 id="on-sort-box-the-unboxed-tuple-and-friends"><a href="#on-sort-box-the-unboxed-tuple-and-friends">On sort box, the unboxed tuple, and friends</a></h3>
+<p>Although sort box does not appear in the code, it is useful from a theoretical point of view to talk about certain types such as the types of unboxed tuples. Unboxed tuples may have boxed and unboxed arguments, without sort box it would be impossible to express this since it must be superkind polymorphic. sort box allows one to express this as (in the case of the unboxed 2-tuple)</p>
+<pre><code>∀s1:□ ∀s2:□ ∀k1:s1 ∀k2:s2 ∀t1:k1 ∀t2:k2 . (# t1, t2 #)</code></pre>
+<p>However, although this is a valid typing of what it would mean if a unboxed tuple were not fully applied, since we do not have any rules of form (##,?,?) or (□,?,?) this type obviously does not typecheck. Which is what enforces the invarient that unboxed tuples are always fully applied, and is also why we do not need a code representation of sort box.</p>
+<h4 id="do-we-need-a-superbox"><a href="#do-we-need-a-superbox">Do we need a superbox?</a></h4>
+<p>You will notice that if you look at the axioms involving the sorts, you end up with a disjoint graph</p>
+<pre><code>         □             - the box
+        / \
+      **   ##          - superkind
+      /\     \
+     *  !     #   (#)  - kind</code></pre>
+<p>This is simply due to the fact that nothing is polymorphic in unboxed tuples of kind (#) so we never need to refer to any super-sorts of them. We can add sorts (##),(□) and □□ to fill in the gaps, but since these sorts will never appear in code or discourse, we will ignore them from now on.</p>
+<pre><code>           □□            - sort superbox
+          /  \
+         □    (□)        - sort box
+        / \      \
+      **   ##     (##)   - sort superkind
+      /\     \    |
+     *  !     #   (#)    - sort kind</code></pre>
+</body>
+</html>

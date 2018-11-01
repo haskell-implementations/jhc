@@ -1,0 +1,41 @@
+
+<html>
+<head>
+<title>jhc</title>
+<link rel=stylesheet type="text/css" href="/style/blue-style.css">
+</head>
+<body>
+    <h1 class=maintitle style="visibility: hidden">Jhc</h1>
+<!--#include virtual="/try/navbar.html" -->
+<div class=foo>
+
+<h1 id="installation-of-jhc">Installation of jhc</h1>
+<p>All versions of jhc are available from the <a href="http://repetae.net/dist/">Download Directory</a>. The project is also under darcs revision control however the build process from darcs is somewhat more involved. For information on getting the source code from darcs and building it, see the <a href="development.shtml">Development Page</a>.</p>
+<h2 id="building-from-the-tarball">Building from the tarball</h2>
+<p>jhc is also distributed via a autoconf/automake style tarball. Building jhc has the following dependencies:</p>
+<ul>
+<li>GHC 6.12.1 or better</li>
+<li>haskell library <a href="http://hackage.haskell.org/cgi-bin/hackage-scripts/package/binary">binary</a></li>
+<li>haskell library <a href="http://hackage.haskell.org/cgi-bin/hackage-scripts/package/zlib">zlib</a></li>
+<li>haskell library <a href="http://hackage.haskell.org/cgi-bin/hackage-scripts/package/utf8-string">utf8-string</a></li>
+<li>haskell library <a href="http://hackage.haskell.org/cgi-bin/hackage-scripts/package/readline">readline</a></li>
+<li>haskell library <a href="http://hackage.haskell.org/cgi-bin/hackage-scripts/package/fgl">fgl</a></li>
+<li>haskell library <a href="http://hackage.haskell.org/cgi-bin/hackage-scripts/package/regex-compat">regex-compat</a></li>
+<li>haskell library <a href="http://hackage.haskell.org/cgi-bin/hackage-scripts/package/HsSyck">HsSyck</a></li>
+</ul>
+<p>You can get the tarball at <a href="http://repetae.net/dist/jhc-0.8.1.tar.gz">http://repetae.net/dist/jhc-0.8.1.tar.gz</a>. In order to build it, download it into a directory and perform the following</p>
+<pre><code>tar zxvf jhc-0.8.1.tar.gz
+cd jhc-0.8.1
+./configure &amp;&amp; make</code></pre>
+<p>then as root run</p>
+<pre><code>make install</code></pre>
+<h2 id="a-note-on-libraries">A note on libraries</h2>
+<p>All these prepackaged versions of jhc come with prebuilt versions of base, haskell98, and a few other libraries for use by jhc in addition to the sourcecode for these libraries. You can rebuild them if you wish simply by deleting the '.hl' files in your build directory and doing a 'make libs'. however it is recommended you work with the development darcs tree if you plan on modifying the base libraries.</p>
+
+
+<hr>
+<a href="/">My homepage</a> -&gt; <a href="/computer">computer stuff</a> -&gt; <a href="/computer/jhc">jhc</a>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,23 @@
+# names are represented as indexes into a hash table of strings. some names such
+# as tuples are auto generated so we give them a special representation rather
+# than pollute the table with them.
+
+- name: tuple
+  parameterized: int 
+  namespaces: [tc,dc]
+  module: Jhc.Prim.Prim
+  hsname: "(%s)"
+
+- name: tuple_
+  parameterized: int 
+  namespaces: [tc,dc]
+  module: Jhc.Prim.Prim
+  hsname: "(#%i#)"
+
+
+- type: star
+  namespaces: s
+  
+
+
+

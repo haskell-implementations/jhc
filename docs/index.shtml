@@ -1,0 +1,39 @@
+
+<html>
+<head>
+<title>jhc</title>
+<link rel=stylesheet type="text/css" href="/style/blue-style.css">
+</head>
+<body>
+    <h1 class=maintitle style="visibility: hidden">Jhc</h1>
+<!--#include virtual="/try/navbar.html" -->
+<div class=foo>
+
+<h1 id="jhc-haskell-compiler">Jhc Haskell Compiler</h1>
+<h1 id="how-to-install"><a href="building.shtml"><strong><em>How to install</em></strong></a></h1>
+<p>jhc is a haskell compiler which aims to produce the most efficient programs possible via whole program analysis and other optimizations.</p>
+<h2 id="using-jhc">Using Jhc</h2>
+<ul>
+<li>See the <a href="building.shtml">Installation Page</a> for information about downloading and installing jhc.</li>
+<li>For information on running jhc, see <a href="manual.html">The User's Manual</a>.</li>
+<li>Join the <a href="http://www.haskell.org/mailman/listinfo/jhc">jhc mailing list</a> for jhc discussion, announcements, and bug reports.</li>
+<li>There is a <a href="http://haskell.org/haskellwiki/Jhc">spot on the wiki</a> but it doesn't have much info yet. feel free to expand it.</li>
+</ul>
+<h2 id="developing-jhc">Developing Jhc</h2>
+<ul>
+<li><a href="development.shtml">the development page</a> has information on how to pull the development tree from the darcs repository</li>
+<li><a href="bug">the bug tracker</a> tracks known jhc issues, bugs can be added by submitting darcs patches or just posting to the mailing list jhc@haskell.org</li>
+<li>An informal graph of the internal code motion in jhc is <a href="big-picture.pdf">here (pdf)</a>.</li>
+</ul>
+<h2 id="historical">Historical</h2>
+<ul>
+<li><a href="jhc.shtml">The Orignal Page</a> original announcement of jhc, goes somewhat into motivation, but the description of the state of jhc is out of date.</li>
+</ul>
+
+
+<hr>
+<a href="/">My homepage</a> -&gt; <a href="/computer">computer stuff</a> -&gt; <a href="/computer/jhc">jhc</a>
+
+</div>
+</body>
+</html>

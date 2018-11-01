@@ -1,0 +1,95 @@
+
+<html>
+<head>
+<title>jhc</title>
+<link rel=stylesheet type="text/css" href="/style/blue-style.css">
+</head>
+<body>
+    <h1 class=maintitle style="visibility: hidden">Jhc</h1>
+<!--#include virtual="/try/navbar.html" -->
+<div class=foo>
+
+<div id="developing-jhc"
+><h1
+  >Developing jhc</h1
+  ><p
+  >jhc is maintained via the <a href="http://darcs.net/"
+    >Darcs revision control system</a
+    >. The darcs repository is located at <a href="http://repetae.net/repos/jhc"
+    ><code
+      >http://repetae.net/repos/jhc</code
+      ></a
+    >, you can also <a href="http://repetae.net/dw/darcsweb.cgi?r=jhc;a=summary"
+    >browse the repository</a
+    > via darcsweb.</p
+  ><div id="getting-the-source"
+  ><h2
+    >Getting the source</h2
+    ><p
+    >If you simply wish to use jhc, it is much easier to build from the distribution tarball, as described on the <a href="building.shtml"
+      >Building Page</a
+      >. If you are interested in developing or modifying jhc itself, then building from darcs as described on this page is recommended.</p
+    ><p
+    >In order to build from the darcs repo, you need the following things installed:</p
+    ><pre
+    ><code
+      >* GHC 6.12.1 or better
+* A recent version of DrIFT
+* pandoc if you wish to build documentation
+* graphviz if you wish to create code motion graphs
+* a working perl install for various sundry tasks
+* the happy haskell parser generator
+* darcs 2.0 or better
+* You need the following haskell libraries
+  * binary
+  * zlib
+  * utf8-string
+  * bytestring
+  * containers
+  * one of editline or readline
+  * HsSyck
+  * mtl
+</code
+      ></pre
+    ><p
+    >If the dependencies are installed properly, the following will produce a working tree:</p
+    ><pre
+    ><code
+      >darcs get http://repetae.net/repos/jhc
+cd jhc
+autoreconf -i
+./configure
+</code
+      ></pre
+    ><p
+    >Now you can begin to build jhc and the standard libraries, in order to do so, switch to the jhc directory and do:</p
+    ><pre
+    ><code
+      >make jhc
+</code
+      ></pre
+    ><p
+    >jhc can now be tested via the following command to build HelloWorld with the freshly built libraries in the current directory.</p
+    ><pre
+    ><code
+      >./jhc -L- -L. examples/HelloWorld.hs -o HelloWorld
+</code
+      ></pre
+    ><p
+    >External libraries described in lib/ext can be built with the following</p
+    ><pre
+    ><code
+      >make libs
+</code
+      ></pre
+    ></div
+  ></div
+>
+
+
+<hr>
+<a href="/">My homepage</a> -&gt; <a href="/computer">computer stuff</a> -&gt; <a href="/computer/jhc">jhc</a>
+
+</div>
+</body>
+</html>
